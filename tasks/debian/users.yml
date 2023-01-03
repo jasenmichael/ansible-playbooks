@@ -1,0 +1,35 @@
+---
+- name: Add/Remove users
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    state: "{{ item.state | default('present') }}"
+    groups: "{{ item.groups | default([]) }}"
+  with_items: "{{ users }}"
+  loop_control:
+    label: "user '{{ item.username }}' {% if (item.state | default('present')) == 'present' %}exists{% else %}does not exist{% endif %}"
+  when: item.username is defined
+
+- name: .zshrc set User paths
+  replace:
+    path: /home/{{ item.username }}/.zshrc
+    regexp: "# Ansible added export PATHS\n"
+    replace: "# Ansible added export PATHS--"
+  with_items: "{{ users }}"
+  when: item.paths is defined
+  loop_control:
+    label: "PATH={{ item.paths | default([]) | join(':') }}:$PATH"
+  changed_when: false
+
+- name: .zshrc set User paths
+  lineinfile:
+    dest: /home/{{ item.username }}/.zshrc
+    regexp: '# Ansible added export PATHS--'
+    line: "# Ansible added export PATHS\nexport PATH={{ item.paths | default([]) | join(':') }}:$PATH"
+    backrefs: yes
+  with_items: "{{ users }}"
+  when: item.paths is defined
+  changed_when: false
+  loop_control:
+    label: "PATH={{ item.paths | default([]) | join(':') }}:$PATH"
+  # debug:
+  #   msg: "PATH={{ item.paths | default([]) | join(':') }}:$PATH"

@@ -1,0 +1,45 @@
+---
+- name: Copy User Files
+  ansible.builtin.copy:
+    src: "{{ item.1.src | default(omit) }}"
+    content: "{{ item.1.content | default(omit) }}"
+    dest: "{{ item.1.dest }}"
+    owner: "{{ item.1.owner | default(item.0.username) }}"
+    group: "{{ item.1.group | default(item.1.owner | default(item.0.username)) }}"
+    mode: "{{ item.1.mode | default('0700') }}"
+  with_subelements:
+    - "{{ users }}"
+    - files
+    - skip_missing: true
+  when: ((item.1.state is not defined) or (item.1.state != 'absent')) and ((item.1.src is defined) or (item.1.content is defined)) and (item.1.url is not defined)
+  loop_control:
+    label: "'{{ item.1.src | default(item.1.content | default(item.1.url)) }}' to '{{ item.1.dest }}'"
+    # label: "'{{ item.1 }}'"
+
+- name: Download User Files
+  ansible.builtin.get_url:
+    url: "{{ item.1.url }}"
+    dest: "{{ item.1.dest }}"
+    mode: "{{ item.1.mode | default('0700') }}"
+  # debug:
+  #   msg: "Downloading {{ item.1.url }} to {{ item.1.dest }}"
+  with_subelements:
+    - "{{ users }}"
+    - files
+    - skip_missing: true
+  when: ((item.1.state is not defined) or (item.1.state != 'absent')) and ((item.1.src is not defined) and (item.1.content is not defined)) and (item.1.url is defined)
+  changed_when: false
+  loop_control:
+    label: "'{{ item.1.src | default(item.1.content | default(item.1.url)) }}' copied to '{{ item.1.dest }}'"
+
+- name: Remove User Files
+  ansible.builtin.file:
+    path: "{{ item.1.dest | default(omit) }}"
+    state: "{{ item.1.state }}"
+  with_subelements:
+    - "{{ users }}"
+    - files
+    - skip_missing: true
+  when: (item.1.state is defined ) and (item.1.state == 'absent')
+  loop_control:
+    label: "'{{ item.0.username }} {{ item.1.dest }}'"

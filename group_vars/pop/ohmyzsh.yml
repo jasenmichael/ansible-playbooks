@@ -1,0 +1,11 @@
+oh_my_zsh_theme: crunch
+
+oh_my_zsh_plugins:
+  - git
+  - docker
+  - zsh-syntax-highlighting
+  - zsh-autosuggestions
+
+oh_my_zsh_update_mode: disabled
+oh_my_zsh_update_frequency: 13
+oh_my_zsh_update_plugins: false

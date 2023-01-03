@@ -1,0 +1,21 @@
+---
+- name: Check for missing updates.
+  ansible.windows.win_updates:
+    state: searched
+
+- name: Install Windows updates.
+  ansible.windows.win_updates:
+    category_names: "{{ update_categories | default(omit) }}"
+  register: update_result
+  until: update_result.found_update_count == 0
+
+- name: Reboot if required by updates.
+  ansible.windows.win_reboot:
+    reboot_timeout: 3600
+  when: (update_result.reboot_required) and (windows_updates_reboot)
+
+# - debug:
+#     msg:
+#       - "update_result.reboot_required: {{ update_result.reboot_required }}"
+#       - "windows_updates_reboot: {{ windows_updates_reboot }}"
+#       - "reboot in ansible_run_tags: {{ 'reboot' in ansible_run_tags }}"

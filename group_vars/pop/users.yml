@@ -1,0 +1,51 @@
+users:
+  - username: ansible
+    groups: 
+      - sudo
+      - docker
+
+  - username: me
+    paths:
+      - /home/me/bin
+      - /home/me/.local/bin
+      # - /home/me/.local/bin
+      # - "$HOME/.yarn/bin"
+      # - "$HOME/.config/yarn/global/node_modules/.bin"
+    groups: 
+      - sudo
+      - docker
+    templates:
+      - src: templates/.npmrc.j2
+        dest: /home/me/.npmrc
+    dirs:
+      - path: /home/me/.docker
+      - path: /home/me/.npm
+      - path: /home/me/.npm-packages
+      - path: /home/me/.local/bin
+      - path: /home/me/bin
+    files:
+      # - src: files/me/test.txt
+      - content: "This is a test file"
+        dest: /home/me/test.txt
+        # state: absent
+
+      - src: ../../files/me/crunch-minimal.zsh-theme
+        dest: /home/me/.oh-my-zsh/custom/themes/crunch-minimal.zsh-theme
+
+      - url: https://s76.co/get-boater
+        dest: /home/me/bin/boat
+        mode: a+x
+
+    oh_my_zsh:
+      theme: crunch-minimal
+      plugins:
+        - git
+        - docker
+        - zsh-syntax-highlighting
+        - zsh-autosuggestions
+      custom_plugins:
+        - name: zsh-syntax-highlighting
+          repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+        - name: zsh-autosuggestions
+          repo: https://github.com/zsh-users/zsh-autosuggestions.git
+        

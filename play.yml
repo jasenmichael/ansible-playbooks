@@ -1,0 +1,146 @@
+---
+# LINUX PLAYBOOK
+- name: All Linux Playbook
+  hosts: all:!windows
+  # become: "{{ become | default(true) }}"
+  vars_files:
+    - vars/global.yml
+  pre_tasks:
+    - name: Check if reboot required
+      become: true
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required_file
+      tags: ["reboot"]
+
+    - name: Reboot if required
+      become: true
+      reboot:
+      when: reboot_required_file.stat.exists == true
+      tags: ["reboot"]
+
+    - name: Check current timezone
+      become: true
+      shell: cat /etc/timezone
+      register: current_timezone
+      changed_when: false
+      tags: ["timezone"]
+
+    - name: Set Timezone
+      become: true
+      timezone:
+        name: "{{ timezone }}"
+      when:
+        - not ansible_check_mode
+        - current_timezone.stdout != timezone
+      tags: ["timezone"]
+
+    - name: "Update Apt Repository Index"
+      become: true
+      apt:
+        update_cache: yes
+      changed_when: false
+      tags: ["update", "apt"]
+
+    - name: debug
+      debug:
+        msg: 
+          - "ansible_os_family: {{ ansible_os_family }}"
+          - "ansible_distribution: {{ ansible_distribution }}"
+          - "ansible_connection: {{ ansible_connection }}"
+      tags: ["never","debug"]
+
+  tasks:
+    - name: ping all Linux hosts 🖧
+      tags: ["never","ping","debug"]
+      ping:
+    
+    - import_tasks: tasks/debian/apt.yml
+      become: true
+      when: ansible_os_family == "Debian"
+      tags: ["apt","update"]
+
+    - import_tasks: tasks/debian/users.yml
+      become: true
+      tags: ["users"]
+
+    - import_tasks: tasks/debian/ohmyzsh.yml
+      become: true
+      when: (install_ohmyzsh | default(false)) or ('dev' in ansible_run_tags) or ('ohmyzsh' in ansible_run_tags)
+      tags: ["dev", "ohmyzsh"]
+
+    - import_tasks: tasks/debian/templates.yml
+      become: true
+      tags: ["templates", "files"]
+
+    - import_tasks: tasks/debian/dirs.yml
+      become: true
+      tags: ["dirs", "files"]
+
+    - import_tasks: tasks/debian/files.yml
+      become: true
+      tags: ["files"]
+
+
+# WINDOWS PLAYBOOK
+- name: all Windows Playbook
+  hosts: windows
+  become: false
+  pre_tasks:
+    - import_tasks: tasks/windows/updates.yml
+      when: (install_windows_updates) or ('update' in ansible_run_tags)
+      tags: ["update","never"]
+
+    - name: Reboot
+      ansible.windows.win_reboot:
+        reboot_timeout: 3600
+      when: ('reboot' in ansible_run_tags)
+      tags: ["reboot", "never"]
+
+  tasks:
+    - name: ping all Windows hosts 🖧
+      tags: ["never","ping","debug"]
+      win_ping:
+
+    - import_tasks: tasks/windows/chocolatey.yml
+      tags: ["choco"]
+
+    - import_tasks: tasks/windows/debloat.yml
+      when: remove_bloatware
+      tags: ["debloat"]
+
+    - import_tasks: tasks/windows/explorer.yml
+      when: configure_explorer
+      tags: ["explorer"]
+
+    - import_tasks: tasks/windows/taskbar.yml
+      when: configure_taskbar
+      tags: ["taskbar"]
+
+    - import_tasks: tasks/windows/start_menu.yml
+      when: configure_start_menu
+      tags: ["start_menu"]
+
+    - import_tasks: tasks/windows/sounds.yml
+      when: set_sound_scheme
+      tags: ["sounds"]
+
+    - import_tasks: tasks/windows/mouse.yml
+      when: disable_mouse_acceleration
+      tags: ["mouse"]
+
+    - import_tasks: tasks/windows/power_plan.yml
+      when: change_power_plan
+      tags: ["power"]
+
+    - import_tasks: tasks/windows/remote_desktop.yml
+      when: remote_desktop_enabled
+      tags: ["remote_desktop"]
+
+    - import_tasks: tasks/windows/desktop.yml
+      when: remove_desktop_icons
+      tags: ["clean_desktop"]
+
+  # roles:
+    # - role: all
+    #   when: "ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '20'"

@@ -1,0 +1,24 @@
+- name: setup ohmyzsh for users
+  include_role:
+    name: gantsign.oh-my-zsh
+  loop: "{{ users }}"
+
+- name: install custom ohmyzsh plugins
+  vars:
+    custom_plugins_dir: "/home/{{ item.0.username }}/.oh-my-zsh/custom/plugins"
+    name: "{{ item.1.name }}"
+    repo: "{{ item.1.repo }}"
+    dest: "{{ custom_plugins_dir }}/{{ item.1.name }}"
+  ansible.builtin.git:
+    repo: "{{ repo }}"
+    clone: true
+    dest: "{{ dest }}"
+    # force: true
+    update: "{{ oh_my_zsh_update_plugins | default(false) }}"
+  with_subelements:
+    - "{{ users }}"
+    - oh_my_zsh.custom_plugins
+    - skip_missing: true
+  loop_control:
+    label: "cloned {{ repo }} to {{ dest }}"
+  when: (item.1.name is defined) and (item.1.repo is defined)

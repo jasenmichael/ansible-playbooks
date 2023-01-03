@@ -41,7 +41,8 @@ sudo apt update
 sudo apt install -y ansible
 ansible --version
 
-ansible-galaxy collection install chocolatey.chocolatey
+ansible-galaxy install -r requirements.yml
+pip3 install "ansible-lint"
 ```
 
 ### generate ansible ssh key for linux remote hosts
@@ -55,7 +56,5 @@ ssh-keygen -t ed25519 -C "ansible"
 ssh-copy-id -i ~/.ssh/ansible <ip-or-hostname>
 ```
 
-ansible_user: LocalUsername
-ansible_password: Password
-ansible_connection: winrm
-ansible_winrm_transport: basic
+TODO:
+- add "never" and "setup" tags!!!!!!

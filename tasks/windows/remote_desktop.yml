@@ -1,0 +1,36 @@
+---
+- name: Configure Remote Desktop Services.
+  ansible.windows.win_regedit:
+    path: "{{ item }}"
+    name: fDenyTSConnections
+    data: 00000000
+    type: dword
+    state: "{{ 'present' if remote_desktop_enabled else 'absent' }}"
+  with_items:
+    - "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\"
+    - "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services"
+
+- name: Configure Firewall rules (RDS).
+  changed_when: false
+  ansible.windows.win_shell: >
+    "{{ 'Enable-NetFirewallRule' if remote_desktop_enabled else 'Disable-NetFirewallRule' }}
+    -DisplayGroup 'Remotedesktop'"
+
+# - name: features | Managing Remote Desktop Feature
+#   win_feature:
+#     name: Remote-Desktop-Services
+#     state: present
+#   register: _windows_remote_desktop_services_enabled
+#   # when: windows_remote_desktop_enabled
+
+# - name: Create a new RDS RAP
+#   community.windows.win_rds_rap:
+#     name: My RAP
+#     description: Allow all users to connect to any resource through ports 3389 and 3390
+#     user_groups:
+#       - BUILTIN\users
+#     computer_group_type: allow_any
+#     allowed_ports:
+#       - 3389
+#       - 3390
+#     state: enabled

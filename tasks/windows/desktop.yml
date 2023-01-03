@@ -1,0 +1,39 @@
+---
+- name: Get user profile path.
+  ansible.windows.win_command: powershell.exe -
+  args:
+    stdin: echo $HOME
+  register: user_home_path
+  changed_when: false
+
+- name: Get shortcuts list.
+  ansible.windows.win_find:
+    paths:
+      - C:\Users\Public\Desktop
+      - '{{ user_home_path.stdout | trim }}\Desktop'
+      # - '{{ user_home_path.stdout | trim }}\OneDrive\Desktop'
+      # - C:\Users\quinn\Desktop
+      # - C:\Users\quinn\OneDrive\Desktop
+      # - C:\Users\jasper\Desktop
+      # - C:\Users\jasper\OneDrive\Desktop
+    patterns: "*.lnk"
+  register: shortcuts_list
+  changed_when: false
+
+- name: Get shortcuts found
+  slurp:
+    src: "{{ item }}"
+  loop: "{{ shortcuts_list | json_query('files[].path') }}"
+  register: shortcuts
+
+- name: DEBUG shortcuts found
+  debug:
+    msg: "{{ item }}"
+  loop: "{{ shortcuts.results }}"
+
+- name: Remove shortcuts from the Desktop.
+  ansible.windows.win_file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ shortcuts.results | unique }}"
+  when: shortcuts.results | length > 0

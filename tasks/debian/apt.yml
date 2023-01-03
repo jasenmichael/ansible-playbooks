@@ -1,0 +1,54 @@
+---
+# - name: "filter apt_packages that have a name"
+#   debug:
+#     msg: "{{ apt_packages | selectattr('apt_key_url', 'defined') | list }}"
+
+- name: "Install apt keys if provided"
+  vars:
+    deb_architecture:
+      aarch64: arm64
+      x86_64: amd64
+    arch: "{{ [ansible_architecture] | map('extract', deb_architecture) | first }}"
+  when: (item.repo is defined) and (item.apt_key_url is defined) and (item.name is defined)
+  ansible.builtin.apt_key:
+    url: "{{ item.apt_key_url }}"
+    state: "{{ item.state | default('present') }}"
+    keyring: "/etc/apt/keyrings/{{ item.pkg | default(item.name) }}"
+  with_items: "{{ apt_packages | selectattr('apt_key_url', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.apt_key_url }}"
+  
+# - name: "Install apt repositories if provided -- DEBUG"
+- name: "Install apt repositories if provided"
+  vars:
+    deb_architecture:
+      aarch64: arm64
+      x86_64: amd64
+    arch: "arch={{ [ansible_architecture] | map('extract', deb_architecture) | first }}"
+    signed_by: "{% if item.apt_key_url is defined %} signed-by=/etc/apt/keyrings/{{ item.pkg | default(item.name) }}{% else %}{% endif %}"
+  when: (item.repo is defined) and (item.name is defined)
+  # debug:
+  #   msg: 
+  #     - "[{{ arch }}{{ signed_by }}]"
+  ansible.builtin.apt_repository:
+    repo: "deb [{{ arch }}{{ signed_by }}] {{ item.repo }} {{ item.code_name | default(ansible_distribution_release) }} {{ item.branch | default('stable') }}"
+    filename: "{{ item.name }}"
+    state: "{{ item.state | default('present') }}"
+    update_cache: "{{ item.update_cache | default(true) }}"
+  with_items: "{{ apt_packages | selectattr('repo', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.repo }}"
+
+
+- name: "Install apt_packages"
+  # debug:
+    # msg:
+  #     - "{% if item.pkg is defined %}{{ item.pkg }}{% else %}{{ item.name | default(item) }}{% endif %}"
+  #     - "{{ item.pkg | default(item.name | default(item)) }}"
+  apt:
+    update_cache: "{{ item.update_cache | default(true) }}"
+    name: "{{ item.pkg | default(item.name | default(item)) }}"
+    state: "{{ item.state | default('present') }}"
+  with_items: "{{ apt_packages }}"
+  loop_control:
+    label: "{{ item.pkg | default(item.name | default(item)) }}"

@@ -1,0 +1,23 @@
+---
+- name: Create User Templates
+  # ansible.builtin.debug:
+  #   msg: 
+      # - "src: {{ item.1.src }}"
+      # - "dest: {{ item.1.dest }}"
+      # - "owner: {{ item.1.owner | default(item.1.username) }}"
+      # - "group: {{ item.1.group | default(item.1.owner | default(item.1.username)) }}"
+      # - "mode: {{ item.1.mode | default(0600) }}"
+  vars:
+    username: "{{ item.0.username }}"
+  ansible.builtin.template:
+    src: "{{ item.1.src }}"
+    dest: "{{ item.1.dest }}"
+    owner: "{{ item.1.owner | default(username) }}"
+    group: "{{ item.1.group | default(item.1.owner | default(username)) }}"
+    mode: "{{ item.1.mode | default('0600') }}"
+  with_subelements:
+    - "{{ users }}"
+    - templates
+    - skip_missing: True
+  loop_control:
+    label: "template '{{ item.1.dest }}' for user '{{ item.0.username }}' exists"
