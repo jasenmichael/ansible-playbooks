@@ -55,6 +55,3 @@ ssh-keygen -t ed25519 -C "ansible"
 ```bash
 ssh-copy-id -i ~/.ssh/ansible <ip-or-hostname>
 ```
-
-TODO:
-- add "never" and "setup" tags!!!!!!
